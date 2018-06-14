@@ -5,7 +5,6 @@ import * as net from "net";
 import * as q from "bluebird";
 import * as uuid from "uuid";
 import _ = require("lodash");
-import { StratumError } from "./stratumerror";
 
 /**
  * @param {Socket} socket
@@ -99,7 +98,7 @@ export class Client extends Base {
       (!_.isNull(command["error"]) && !_.isEmpty(command["error"]))
     ) {
       // we have an error, we need to act on that, regardless of other members in the command received
-      throw Object.assign(new Error(command.error[1]), {
+      throw (<any>Object).assign(new Error(command.error[1]), {
         stratum_code: command.error[0],
         stack: command.error[2],
         id: command.id

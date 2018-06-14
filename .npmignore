@@ -1,9 +1,14 @@
-test
 src
 node_modules
-examples
 coverage
 tsconfig.json
 .travis.yml
 README.md
 jsconfig.json
+
+lib/*.d.ts
+lib/*.map
+examples/*.ts
+examples/*.map
+test/*.ts
+test/*.map

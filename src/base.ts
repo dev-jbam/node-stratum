@@ -7,7 +7,7 @@ const debug = Debug("stratum");
 
 export class Base extends EventEmitter {
   static debug(...msg: any[]) {
-    debug(this.constructor.name + ": ", ...msg);
+    debug( "Base" + ": ", ...msg);
 
     return typeof msg === 'object' ? msg.join(', ') : msg;
   }
