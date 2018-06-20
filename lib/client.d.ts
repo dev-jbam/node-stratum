@@ -86,7 +86,7 @@ export declare class Client extends Base {
      * @param {String} [UA] Send the User-Agent
      * @returns {Q.promise}
      */
-    stratumSubscribe(UA: any): q<{}>;
+    stratumSubscribe(UA: any): q<any>;
     /**
      * Asks for authorization
      *
@@ -94,7 +94,7 @@ export declare class Client extends Base {
      * @param {String} pass
      * @returns {Q.promise}
      */
-    stratumAuthorize(user: any, pass: any): q<{}>;
+    stratumAuthorize(user: any, pass: any): q<any>;
     /**
      * Sends a share
      *
@@ -105,7 +105,7 @@ export declare class Client extends Base {
      * @param {String} nonce
      * @returns {Q.promise}
      */
-    stratumSubmit(worker: any, job_id: any, extranonce2: any, ntime: any, nonce: any): q<{}>;
+    stratumSubmit(worker: any, job_id: any, extranonce2: any, ntime: any, nonce: any): q<any>;
     /**
      * Send Stratum command
      *
@@ -115,7 +115,7 @@ export declare class Client extends Base {
      *
      * @returns {Q.promise}
      */
-    stratumSend(data: any, bypass?: any, name?: any): q<{}>;
+    stratumSend(data: any, bypass?: any, name?: any): q<any>;
     /**
      * Send raw data to the server
      *

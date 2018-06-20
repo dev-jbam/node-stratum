@@ -98,11 +98,7 @@ export class Client extends Base {
       (!_.isNull(command["error"]) && !_.isEmpty(command["error"]))
     ) {
       // we have an error, we need to act on that, regardless of other members in the command received
-      throw (<any>Object).assign(new Error(command.error[1]), {
-        stratum_code: command.error[0],
-        stack: command.error[2],
-        id: command.id
-      });
+      throw new Error(command);
     } else if (_.has(command, "id") && _.isNull(command["id"])) {
       // null id, it's a broadcast most likely, we need to check the last command
       if (_.has(command, "method")) {
@@ -144,10 +140,10 @@ export class Client extends Base {
 
       const cmd = self.pending[command["id"]];
 
-      delete self.pending[command["id"]];
-
+      
       self.emit("mining", command, self, "result", cmd);
-
+      
+      delete self.pending[command["id"]];
     } else if (_.has(command, "id") && _.has(command, "result")) {
       // regular result that wasnt issued by this socket
 
@@ -196,13 +192,13 @@ export class Client extends Base {
    * @returns {Q.promise}
    */
   connect(opts) {
-    var self = this;
+    var d = q.defer(), self = this;
 
-    return new q(function(resolve) {
-      self.socket.connect(opts, function clientSocketConnect() {
-        resolve(self);
-      });
+    self.socket.connect(opts, function clientSocketConnect() {
+      d.resolve(self);
     });
+
+    return d.promise;
   }
 
   /**
@@ -236,8 +232,9 @@ export class Client extends Base {
    * @return {Q.promise}
    */
   stratumHttpHeader(hostname, port) {
-    var result = '{"error": null, "result": false, "id": 0}';
-    var header = [
+    var result = '{"error": null, "result": false, "id": 0}',
+    d = q.defer(),
+    header = [
       "HTTP/1.1 200 OK",
       "X-Stratum: stratum+tcp://" + hostname + ":" + port,
       "Connection: Close",
@@ -248,10 +245,10 @@ export class Client extends Base {
     ];
     var self = this;
 
-    return new q(function(resolve) {
-      Client.debug("Sending Stratum HTTP header");
-      self.socket.write(header.join("\n"), resolve);
-    });
+    Client.debug("Sending Stratum HTTP header");
+    self.socket.write(header.join("\n"), curry.wrap(d.resolve, d));
+
+    return d.promise;
   }
 
   /**
@@ -343,17 +340,21 @@ export class Client extends Base {
   send(data) {
     Client.debug("(" + this.id + ") Sent command " + data);
 
-    var self = this;
-
-    return new q(function(resolve, reject) {
+    var d = q.defer(), self = this;
+    
+    try {
       self.socket.write(data, function clientSocketWrite(err) {
         if (err) {
-          reject(err);
+          d.reject(err);
         } else {
-          resolve(self);
+          d.resolve(self);
         }
       });
-    });
+    } catch (err) {
+      d.reject(err);
+    }
+    
+    return d.promise;
   }
 
   static createSocket(socket?: net.Socket): net.Socket {

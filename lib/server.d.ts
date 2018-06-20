@@ -100,9 +100,9 @@ export declare class Server extends Base {
      * @returns {Function} curryed function
      */
     static bindCommand(socket: any, type: any, id: any): any;
-    static rejected(msg: any): q<never>;
-    static expose(base: any, name: any): (args: any, connection: any, callback: any) => q<void>;
-    static invalidArgs(id: any, name: any, expected: any, args: any): true | q<never>;
+    static rejected(msg: any): q<any>;
+    static expose(base: any, name: any): (args: any, connection: any, callback: any) => void;
+    static invalidArgs(id: any, name: any, expected: any, args: any): true | q<any>;
     static commands: {
         /**
          * Return subscription parameters to the new client

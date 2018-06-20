@@ -174,22 +174,21 @@ export class Server extends Base {
    * @return {Q.promise}
    */
   listen() {
-    var self = this;
+    var self = this, d = q.defer();
 
-    return new q(function(resolve) {
       self.server.listen(
         self.opts.settings.port,
         self.opts.settings.host,
         function serverListen() {
-          resolve(Server.debug("Listening on port " + self.opts.settings.port));
-        }
-      );
+        d.resolve(Server.debug("Listening on port " + self.opts.settings.port));
+    });
 
       /*istanbul ignore else */
       if (self.rpc) {
         self.rpc.listen();
       }
-    });
+    
+    return d.promise;
   }
 
   close() {
@@ -217,27 +216,23 @@ export class Server extends Base {
    * @return {Q.promise}
    */
   sendToId(id?, type?, array?) {
-    var self = this;
+    var self = this, d = q.defer();
 
-    return new q(function(resolve, reject) {
       if (type && _.isFunction(Server.commands[type])) {
         if (id && _.has(self.clients, id)) {
           Server.commands[type]
             .apply(self.clients[id], [id].concat(array))
-            .done(resolve, reject);
-        } else {
-          reject(
-            new Error(Server.debug('sendToId socket id not found "' + id + '"'))
+          .done(
+            curry.wrap(d.resolve, d),
+            curry.wrap(d.reject, d)
           );
+      } else {
+        d.reject(Server.debug('sendToId socket id not found "' + id + '"'));
         }
       } else {
-        reject(
-          new Error(
-            Server.debug('sendToId command doesnt exist "' + type + '"')
-          )
-        );
+        d.reject(Server.debug('sendToId command doesnt exist "' + type + '"'));
       }
-    });
+    return d.promise;
   }
 
   /**
@@ -256,10 +251,9 @@ export class Server extends Base {
    * @returns {Q.promise}
    */
   broadcast(type?, data?) {
-    var self = this,
-      total = 0;
+    var self = this, d = q.defer(), total = 0;
 
-    return new q(function(resolve, reject) {
+    
       if (typeof type === "string" && _.isArray(data)) {
         if (
           typeof Server.commands[type] === "function" &&
@@ -268,8 +262,8 @@ export class Server extends Base {
           if (_.size(self.clients)) {
             Server.debug("Brodcasting " + type + " with ", data);
 
-            q
-              .try(function serverBroadcast() {
+            q.try(function serverBroadcast() {
+
                 _.forEach(self.clients, function serverBroadcastEach(socket) {
                   Server.commands[type].apply(socket, [null].concat(data));
                   total++;
@@ -277,21 +271,20 @@ export class Server extends Base {
 
                 return total;
               })
-              .done(resolve, reject);
+            .done(
+              curry.wrap(d.resolve, d ),
+              curry.wrap(d.reject, d)
+            );
           } else {
-            reject(new Error(Server.debug("No clients connected")));
+            d.reject(new Error(Server.debug("No clients connected")));
           }
         } else {
-          reject(
-            new Error(Server.debug('Invalid broadcast type "' + type + '"'))
-          );
+            d.reject(Server.debug('Invalid broadcast type "' + type + '"'))
         }
       } else {
-        reject(
-          new Error(Server.debug("Missing type and data array parameters"))
-        );
+          d.reject(Server.debug("Missing type and data array parameters"))
       }
-    });
+    return d.promise;
   }
 
   /**
@@ -357,24 +350,15 @@ export class Server extends Base {
               // only set lastActivity for real mining activity
               socket.setLastActivity();
 
+              var d = q.defer()
               // Resolved, call the method and send data to socket
               var accept = Server.bindCommand(socket, method[1], command.id);
               // Rejected, send error to socket
               var reject = Server.bindCommand(socket, "error", command.id);
 
-              new q(function(resolve, reject) {
-                self.emit(
-                  "mining",
-                  command,
-                  {
-                    resolve,
-                    reject
-                  },
-                  socket
-                );
-              })
-                .spread(accept)
-                .catch(reject);
+              d.promise.spread(accept, reject);
+
+              self.emit("mining", command, d, socket);
             } else {
               throw new Error(
                 "(" +
@@ -433,27 +417,24 @@ export class Server extends Base {
 
   static expose(base, name) {
     return function serverExposedFunction(args, connection, callback) {
-      return new q(function(resolve, reject) {
-        RPC.debug('Method "' + name + '": ' + args);
+      var d = q.defer();
 
-        base.emit("rpc", name, args, connection, {
-          resolve,
-          reject
-        });
-      }).then(
-        function serverExposedResolve(res) {
-          res = [].concat(res);
+      RPC.debug('Method "' + name + '": ' + args);
 
-          RPC.debug('Resolve "' + name + '": ' + res);
+      d.promise.then(function serverExposedResolve(res){
+        res = [].concat(res);
 
-          callback.call(base, null, [res[0]]);
-        },
-        function serverExposedReject(err) {
+        RPC.debug('Resolve "' + name + '": ' + res);
+
+        callback.call(base, null, [res[0]]);
+        
+        }, function serverExposedReject(err){
           RPC.debug('Reject "' + name + '": ' + err);
 
-          callback.call(base, [].concat(err)[0]);
-        }
-      );
+          callback.call(base, ([].concat(err))[0]);
+        });
+
+        base.emit('rpc', name, args, connection, d);
     };
   }
 

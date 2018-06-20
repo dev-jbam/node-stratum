@@ -175,35 +175,28 @@ export class Daemon extends Base {
    * @returns {Q.promise}
    */
   close(wait) {
-    var timeout,
-      self = this;
+    var d = q.defer(), timeout, self = this;
 
-    return new q(function(resolve, reject) {
-      if (!_.isNull(self.process)) {
-        timeout = self._timeout(function daemonProcessTimeout() {
-          self.process.kill();
-          self.process = null;
-          reject(new Error(Daemon.debug("Process didnt respond and was killed")));
-        }, wait ? wait * 1000 : 5000);
+    if (!_.isNull(self.process)) {
+      timeout = self._timeout(function daemonProcessTimeout() {
+        self.process.kill();
+        self.process = null;
+        d.reject(Daemon.debug("Process didnt respond and was killed"));
+      }, wait ? wait * 1000 : 5000);
 
-        self
-          .call("stop")
-          .then(
-            function daemonProcessStopSuccess() {
-              clearTimeout(timeout);
-              self.process = null;
-              resolve("Stopped " + self.name);
-            },
-            function daemonProcessStopFailed(err) {
-              clearTimeout(timeout);
-              reject(new Error(Daemon.debug(err)));
-            }
-          )
-          .done();
-      } else {
-        reject(new Error(Daemon.debug("Process wasnt started")));
-      }
-    });
+      this.call("stop").then(function daemonProcessStopSuccess() {
+            clearTimeout(timeout);
+            self.process = null;
+            d.resolve("Stopped " + self.name);
+          },
+          function daemonProcessStopFailed(err) {
+            clearTimeout(timeout);
+            d.reject(new Error(Daemon.debug(err)));
+          }).done();
+    } else {
+      d.reject(Demon.debug("Process wasnt started"));
+    }
+    return d.promise;
   }
 
   /**
@@ -215,30 +208,28 @@ export class Daemon extends Base {
    * @return {Q.promise}
    */
   call(method, params?) {
-    var self = this,
-      timeout;
+    var d = q.defer(), self = this, timeout;
 
-    return new q(function(resolve, reject) {
-      params = params === undefined ? [] : params;
+    
+    params = params === undefined ? [] : params;
 
-      timeout = self._timeout(function daemonCallTimeout() {
-        reject(new Error(Daemon.debug("Command timed out")));
-      }, 4000);
+    timeout = self._timeout(function daemonCallTimeout() {
+      d.reject(Daemon.debug("Command timed out"));
+    }, 4000);
 
-      self.rpc.call(
-        method,
-        _.isArray(params) ? params : [params],
-        function daemonRPCCall(err, result) {
-          clearTimeout(timeout);
+    this.rpc.call(method,
+      _.isArray(params) ? params : [params],
+      function daemonRPCCall(err, result) {
+        clearTimeout(timeout);
 
-          if (err) {
-            return reject(err);
-          }
-
-          return resolve(result);
+        if (err) {
+          return d.reject(err);
         }
-      );
-    });
+
+        return d.resolve(result);
+      }
+    );
+    return d.promise;
   }
   /**
    * 'Destructive' function that alters the input object, for the 'args' parameter

@@ -35,21 +35,21 @@
     "socket"
   ],
   "dependencies": {
-    "@types/bluebird": "^3.5.18",
+    "@types/bluebird": "^2.0.33",
     "@types/debug": "^0.0.30",
     "@types/lodash": "^4.14.91",
     "@types/uuid": "^3.4.3",
-    "source-map-support": "^0.5.0",
-    "commander": "^2.12.2",
+    "better-curry": "^1.6.0",
+    "bluebird": "^2.11.0",
     "chalk": "^2.3.0",
-    "json-rpc2": "git://github.com/dev-jbam/node-jsonrpc2.git",
+    "commander": "^2.12.2",
     "debug": "^3.1.0",
-    "toobusy-js": "^0.5.1",
-    "lodash": "^4.17.10",
-    "bluebird": "^3.5.1",
-    "uuid": "^3.1.0",
     "eventemitter3": "^3.0.0",
-    "better-curry": "^1.6.0"
+    "json-rpc2": "git://github.com/dev-jbam/node-jsonrpc2.git",
+    "lodash": "^4.17.10",
+    "source-map-support": "^0.5.0",
+    "toobusy-js": "^0.5.1",
+    "uuid": "^3.1.0"
   },
   "devDependencies": {
     "@types/chai": "^4.0.10",
